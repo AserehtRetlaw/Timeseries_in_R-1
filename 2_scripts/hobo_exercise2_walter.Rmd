@@ -32,6 +32,13 @@ library(zoo)
 # If data preprocessing is needed, do it here.
 # If you have specific functions, placed them here.
 # If this code chunk is not needed, delete it.
+# comp_fill <- function(value , comp_with, comp_n){
+# 	for (i in 0:comp_n) {
+# 		case_when(lag(comp_with, n = i) == value ~ 1,
+# 			  lead(comp_with, n = i) == value ~ 1,
+# 			  TRUE ~ 0)
+# 	}
+# }
 ```
 
 ## 1. Quality control procedures (4 QCPs)
@@ -155,20 +162,39 @@ data %>% filter(qcp4 == 1)
 
 ## 2. Synthesis
 
-```{r synthesis}
-# code for synthesis here
+```{r synthesis, eval=TRUE}
+synth <- data.frame(qcp = c("qcp1", "qcp2", "qcp3", "qcp4"),
+		    flags = c(sum(data$qcp1, na.rm = TRUE),
+		    	  sum(data$qcp2, na.rm = TRUE),
+		    	  sum(data$qcp3, na.rm = TRUE),
+		    	  sum(data$qcp4, na.rm = TRUE)))
+ggplot(synth, aes(qcp, flags))+
+	geom_col()
 ```
 
 **Task**: Present a table or graph to show how many data points fail during the four specific QCPs. Discuss shortly the reasons for failure and compare the different QCPs against each other.
 
-**Answer**:
+**Answer**: As shown in the graph above, the most fails were detected during quality check 3. There were found 76 temperature values, which were same as their 5 previous values. In quality check 2 only 7 temperature values were detected, which differ more than 1 K from their previous value.
+No bad values were found in quality check 1 and 4.
+
+
+
+```{r synthesis_table, echo=FALSE}
+synth
+```
 
 ## 3. Results
 
 ### 3.1 Result (Flagging system: 10-minutes-values)
 
 ```{r res1}
-# code for results here
+# # code for results here
+# df %>%
+# mutate(qc_tot = qc1 + qc2 + qc3) %>%
+# mutate(flag_num =
+# if_else(qc_tot > 1, 1, 0)) %>%
+# mutate(flag_txt =
+# if_else(qc_tot > 1, "bad", "good"))
 ```
 
 **Task**: At the end of the code section above you should generate one! tibble or data.frame named `qc_df` with all time information, all data points (temperature and lux) and your outcomes of the different QCPs.
