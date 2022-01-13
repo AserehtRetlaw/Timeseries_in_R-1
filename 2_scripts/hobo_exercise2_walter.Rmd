@@ -206,6 +206,8 @@ hobo_hourly_dummy <- hobo_hourly_dummy %>%
 
 hobo_hourly <- data.frame(dttm = hobo_hourly_dummy$hour, temp = round(hobo_hourly_dummy$temp_2, 4))
 
+write.csv(hobo_hourly, 'C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/meteo_stations/my_hobo.csv', row.names = FALSE)
+
 hobo_hourly
 ```
 
