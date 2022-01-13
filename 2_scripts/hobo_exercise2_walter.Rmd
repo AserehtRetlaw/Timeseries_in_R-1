@@ -1,0 +1,186 @@
+---
+title: 'Exercise #2'
+author: "Theresa Walter"
+date: "12.01.2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# more internal settings can go here
+# Consider help pages like:
+# https://rmarkdown.rstudio.com/lesson-1.html
+# https://www.rstudio.com/wp-content/uploads/2015/03/rmarkdown-reference.pdf
+
+```
+
+### Loaded packages
+
+```{r libraries, message=FALSE, warning=FALSE}
+# Load all packages here, consider to mute output of this code chunk
+# https://rmarkdown.rstudio.com/lesson-3.html
+library(tidyverse)
+library(lubridate)
+library(zoo)
+```
+
+### Preprocessing / R functions
+
+```{r preprocessing_or_functions, message=FALSE, warning=FALSE}
+# If data preprocessing is needed, do it here.
+# If you have specific functions, placed them here.
+# If this code chunk is not needed, delete it.
+```
+
+## 1. Quality control procedures (4 QCPs)
+
+```{r, eval = TRUE}
+# Load data from Github (then eval = TRUE)
+data <- read_csv('https://raw.githubusercontent.com/data-hydenv/data/master/hobo/2022/10_minute/10760710.csv')
+head(data)
+```
+
+### 1.1 Measurement range (Plausible values)
+The measurement range of HOBO is for temperature from -20°C to 70°C in air and for light intensity from 0 to 320000 lux.
+```{r qcp1, echo=TRUE}
+
+data <- data %>% 
+	mutate(qcp1 = case_when(temp < -20 ~ 1, # flagging values < -20°C
+		  temp > 70 ~ 1, # flagging values > 70°C
+		  # lux < 0 ~ 1,
+		  # lux > 320000 ~ 1,
+		  TRUE ~ 0))
+head(data)
+```
+
+```{r wrong values, echo=TRUE}
+data %>% 
+	group_by(qcp1) %>% # groub by flag and no flag
+	summarise(n = n()) %>%  # count values with and without flag
+	ungroup()
+```
+
+**Question**: How many data points are outside the measurement range?
+
+**Answer**: There are 0 unplausible values.
+
+### 1.2 Plausible rate of change
+
+Is there a difference of more than 1 K between two consecutive temperature values?
+```{r qcp2, eval = TRUE}
+data <- data %>% mutate(qcp2 = if_else(abs(temp - lag(temp)) > 1 , 1, 0)) #%>% # Difference of temperature value and the previous temperature value
+	# group_by(qcp2) %>% # groub by flag and no flag
+	# summarise(n = n()) %>%  # count values with and without flag
+	# ungroup() 
+
+head(data)
+```
+
+```{r time_diff, eval=TRUE}
+
+data %>% filter(qcp2 == 1)
+
+```
+
+**Question**: Describe shortly how many data points failed during this QCP and discuss whether there is a certain daytime pattern of failure or not?
+
+**Answer**: As the shortened four-week-dataset is used for the analysis, a comparison of the first temperature value with its previous value was not possible. Within the remaining dataset 7 values have been found, which had a difference to their previous value fo more than 1 K. Those values are distributed over the second and third week of the measurement and between 6 AM and 6 PM. Influences from the use of the balcony, where the HOBO was located, are possibly recognisable here.
+
+### 1.3 Minimum variability (Persistence)
+
+
+```{r qcp3, eval=TRUE}
+data <- data %>% mutate(qcp3 = if_else(temp == lag(temp, n = 1) &
+				       	temp == lag(temp, n = 2) &
+				       	temp == lag(temp, n = 3) &
+				       	temp == lag(temp, n = 4) &
+				       	temp == lag(temp, n = 5),
+				       1, 0))
+
+head(data)
+```
+```{r invalide Values, echo=TRUE}
+data %>% 
+	group_by(qcp3) %>% # groub by flag and no flag
+	summarise(n = n()) %>%  # count values with and without flag
+	ungroup()
+```
+
+**Task**: Code in this section should analyses the persistance.
+If temperature has not changed during the last 60 minutes (i.e. data point Ti plus 5 data points before from Ti−1 to Ti−5) the corresponding data point Ti failed in this QCP.
+
+### 1.4 Light intensity
+
+```{r qcp4}
+data <- data %>% 
+	mutate(sic = case_when(lux < 20000 ~ "cat1",
+				       between(lux, 20000, 50000) ~ "cat2",
+				       lux > 50000 ~ "cat3",
+				       TRUE ~ "other")) %>%  # classify by Sky Illuminance Classes
+	mutate(qcp4 = case_when(
+                           lag(sic, n = 3) == "cat3" ~ 1, #set 1 if cat3 +- 3 before or ahead
+                           lag(sic, n = 2) == "cat3" ~ 1,
+                           lag(sic) == "cat3" ~ 1,
+                           sic == "cat2" ~ 1,
+                           lead(sic) == "cat3" ~ 1,
+                           lead(sic, n = 2) == "cat3" ~ 1,
+                           lead(sic, n = 3) == "cat3" ~ 1, #set 0 if sunshine +- 1 before or ahead
+                           lag(sic) == "cat2" ~ 1,
+                           sic == "cat2" ~ 1,
+                           lead(sic) == "cat2" ~ 1,
+                           (hour(dttm) < 6 & hour(dttm) >= 18) ~ 0, #set all qcp4 values for nighttime to 1
+                           TRUE ~ 0))
+
+head(data)
+```
+```{r invalide Values2, echo=TRUE}
+data %>% 
+	group_by(sic) %>% # groub by categories
+	summarise(n = n()) %>%  # count values with and without flag
+	ungroup()
+```
+
+
+```{r sunlight, eval=TRUE}
+
+data %>% filter(qcp4 == 1)
+
+```
+
+**Task**: Discuss shortly how often and when during daytime the QCP4 flags bad data. Elaborate on some reasons for your results.
+
+**Answer**: The HOBO was attached to an interior balcony on the north side of the building. Therefore, it is plausible that no values were measured during direct sunlight.
+
+## 2. Synthesis
+
+```{r synthesis}
+# code for synthesis here
+```
+
+**Task**: Present a table or graph to show how many data points fail during the four specific QCPs. Discuss shortly the reasons for failure and compare the different QCPs against each other.
+
+**Answer**:
+
+## 3. Results
+
+### 3.1 Result (Flagging system: 10-minutes-values)
+
+```{r res1}
+# code for results here
+```
+
+**Task**: At the end of the code section above you should generate one! tibble or data.frame named `qc_df` with all time information, all data points (temperature and lux) and your outcomes of the different QCPs.
+
+### 3.2 Result (Aggregate to hourly series)
+
+```{r res2}
+# code for results here
+```
+
+**Task**: At the end of the code section above you should generate one! tibble or data.frame named `hobo_hourly` with averaged temperature values per hour or NA values (if the hour is flagged as bad data). See exercise description for more details.
+
+-   First column: YYYY-DD-MM HH:MM:SS
+
+-   Second column: Temperature values (4 digits), NA values possible
