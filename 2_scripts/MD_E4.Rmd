@@ -1,0 +1,27 @@
+---
+title: "Modul 04 Exercie 4"
+author: "Theresa Walter"
+date: "14 1 2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Packages
+
+```{r packages}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+```
+
+## Data Import
+
+```{r dataimport, echo=FALSE}
+hobo_ten <- read.csv(https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/10760710.csv)
+
+hobo_hour <- read.csv(https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/hourly/10760710_Th.csv)
+```
