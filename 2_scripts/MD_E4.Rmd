@@ -48,7 +48,7 @@ ind
 ## Mean temperature dtotal, day and night
 
 ```{r meanTemp}
-# ind$t_avg <- round(mean(hobo_hour$th),3)
+ind$t_avg <- round(mean(hobo_hour$th),3)
 # hobo_hour
 a <- hobo_hour %>%
 	group_by(daytime) %>% 
@@ -98,21 +98,27 @@ ind
 ## Average Light
 
 ```{r averageLight}
-
+hobo_ten <- hobo_ten %>%
+	mutate(hour = hour(dttm)) %>% 
+	mutate(daynight = if_else(hour > 6 & hour < 18, "D", "N")) %>% 
+	mutate(time = paste(hour(dttm),":",minute(dttm)))
+c <- hobo_ten %>% 
+	group_by(daynight) %>% 
+	summarise(mean = mean(lux), median = median(lux))
+ind$l_avg <- round(filter(c, daynight == "D")[['median']],3)
+ind
 ```
 
 
 ## Maximum of Light
 
 ```{r maxLight}
-hobo_ten <- hobo_ten %>% 
-	mutate(time = paste(hour(dttm),":",minute(dttm)))
-c <- hobo_ten%>% 
+d <- hobo_ten%>% 
 	group_by(time) %>% 
 	summarize(mean_L = mean(lux)) %>% 
 	arrange(mean_L)
 
-ind$l_max <- last(c$time)
+ind$l_max <- last(d$time)
 ind
 ```
 
