@@ -16,12 +16,88 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(dplyr)
+library(zoo)
 ```
 
 ## Data Import
 
 ```{r dataimport, echo=FALSE}
-hobo_ten <- read.csv(https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/10760710.csv)
+hobo_ten <- read.csv("https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/10760710.csv")
 
-hobo_hour <- read.csv(https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/hourly/10760710_Th.csv)
+hobo_hour <- read.csv("https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/hourly/10760710_Th.csv")
 ```
+
+## Hours and daytime hourly
+
+```{r daytime}
+hobo_hour <- hobo_hour %>% mutate(hour = hour(dttm)) %>% # select hour
+	mutate(daytime = if_else(hour > 5 & hour < 18, "D", "N")) %>% #categorize day and night
+	mutate(date = date(dttm))
+hobo_hour
+```
+
+## Create Result-Table
+
+```{r resulttable}
+ind <- data.frame(t_avg = NA, t_d = NA, t_n = NA, t_amp = NA, t_d6h = NA, l_avg = NA, l_max = NA, f_na = NA, ref_id = NA, ref_r2 = NA)
+ind
+```
+
+## Mean temperature dtotal, day and night
+
+```{r meanTemp}
+# ind$t_avg <- round(mean(hobo_hour$th),3)
+# hobo_hour
+a <- hobo_hour %>%
+	group_by(daytime) %>% 
+	summarise(mt= mean(th))
+
+
+ind$t_d <- round(filter(a, daytime == "D")[['mt']],3)
+ind$t_n <- round(filter(a, daytime == "N")[['mt']],3)
+
+ind
+```
+
+## Temperature amplitude
+
+```{r temperatureAmplitude}
+b <- hobo_hour %>%
+	group_by(date) %>% 
+	summarise(min = min(th),
+		  max = max(th)) %>% 
+	mutate(amp = max-min)
+
+ind$t_amp <- round(mean(b$amp),3)
+
+ind
+```
+
+## Most rapid Temperature change
+
+```{r rapideChange}
+t_range <- function(x){
+	d = max(x)-min(x)
+return(d)
+}
+
+hobo_hour <- hobo_hour %>%
+	mutate(t06 = rollapply(th,
+			       width = 6,
+			       FUN = t_range,
+				fill = c(NA,NA,NA),
+				align = "right"))
+
+ind$t_d6h <- round(max(hobo_hour$t06, na.rm = TRUE),3)
+
+ind
+```
+
+## Average Light
+
+```{r averageLight}
+
+```
+
+
+
