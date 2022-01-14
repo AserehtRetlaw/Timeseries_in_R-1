@@ -90,9 +90,23 @@ a <- overview_reg$dwd_urban[1]
 b <- overview_reg$dwd_urban[2]
 
 refs <- refs %>% mutate(model = a + b * dwd_urban) %>% 
-	mutate(th = if_else(is.na(my_hobo), model, my_hobo)) # new column without NAs
+	mutate(th = if_else(is.na(my_hobo), model, my_hobo)) %>% # new column without NAs
+	mutate(origin = if_else(is.na(my_hobo), "R", "H"))
 
 refs	
 
 ```
 
+## Hourly dataset
+
+```{r hourlyDataset}
+hourly_th <- tibble(dttm = refs$dttm, th = refs$th, origin = refs$origin)
+
+hourly_th
+```
+
+## Export
+
+```{r export}
+write.csv(hourly_th, "C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/hourly/10760710_Th.csv", row.names = FALSE)
+```
