@@ -65,13 +65,13 @@ ggplot(data = refs_long, aes(x = dttm, y = temp)) +
 
 ## Regressions
 ```{r regressions}
-hobo_airport <- lm(refs$my_hobo ~ refs$dwd_airport)
+hobo_airport <- lm(refs$my_hobo ~ refs$dwd_airport) #calculate regression between my HOBO and dwd airport Meteo Station
 
-hobo_urban <- lm(refs$my_hobo ~ refs$dwd_urban)
+hobo_urban <- lm(refs$my_hobo ~ refs$dwd_urban) #calculate regression between my HOBO and dwd urban Meteo Station
 
-hobo_uni <- lm(refs$my_hobo ~ refs$uni_meteo)
+hobo_uni <- lm(refs$my_hobo ~ refs$uni_meteo) #calculate regression between my HOBO and uni garden Meteo Station
 
-hobo_wbi <- lm(refs$my_hobo ~ refs$wbi)
+hobo_wbi <- lm(refs$my_hobo ~ refs$wbi) #calculate regression between my HOBO and wbi Meteo Station
 
 # Overview
 
@@ -81,3 +81,18 @@ overview_reg <- data.frame(dwd_airport = hobo_airport[[1]][1:2],
 			   wbi = hobo_wbi[[1]][1:2])
 overview_reg
 ```
+*Result* dwd_urban shows the best regression with the measurements from my HOBO data. Uni Garden Meteo station shows a very similar regression and is closer from a local perspective, but at a way higher elevation than my HOBO. WBI is also localy close, but shows the third best regression.
+
+For those reasons data from DWD urban station will be used for the fill-up-modeling.
+
+```{r modeling}
+a <- overview_reg$dwd_urban[1]
+b <- overview_reg$dwd_urban[2]
+
+refs <- refs %>% mutate(model = a + b * dwd_urban) %>% 
+	mutate(th = if_else(is.na(my_hobo), model, my_hobo)) # new column without NAs
+
+refs	
+
+```
+
