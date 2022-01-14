@@ -25,6 +25,8 @@ library(zoo)
 hobo_ten <- read.csv("https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/10760710.csv")
 
 hobo_hour <- read.csv("https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/hourly/10760710_Th.csv")
+
+regressions <- read.csv("https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/hourly/regressions.csv")
 ```
 
 ## Hours and daytime hourly
@@ -39,7 +41,7 @@ hobo_hour
 ## Create Result-Table
 
 ```{r resulttable}
-ind <- data.frame(t_avg = NA, t_d = NA, t_n = NA, t_amp = NA, t_d6h = NA, l_avg = NA, l_max = NA, f_na = NA, ref_id = NA, ref_r2 = NA)
+ind <- data.frame(t_avg = NA, t_d = NA, t_n = NA, t_amp = NA, t_d6h = NA, l_avg = NA, l_max = NA, f_na = NA, ref_id = 13667, ref_r2 = NA)
 ind
 ```
 
@@ -103,7 +105,15 @@ ind
 ## Maximum of Light
 
 ```{r maxLight}
+hobo_ten <- hobo_ten %>% 
+	mutate(time = paste(hour(dttm),":",minute(dttm)))
+c <- hobo_ten%>% 
+	group_by(time) %>% 
+	summarize(mean_L = mean(lux)) %>% 
+	arrange(mean_L)
 
+ind$l_max <- last(c$time)
+ind
 ```
 
 
@@ -118,5 +128,10 @@ ind
 ```
 
 ## Reference ID
+Reference ID DWD urban: 13667
 
 ## Reference R²
+```{r refR2}
+ind$ref_r2 <- round(regressions[2,2],3)
+ind
+```
