@@ -1,17 +1,25 @@
-# -------------------------------------------------------------------------
-# DATA COLLECTION STORAGE & MANAGEMENT
-# Exercise 3 - Model hourly data
-# Theresa Walter
-# 13.01.2022
-# -------------------------------------------------------------------------
+---
+title: "Modul 04 Exercise 3"
+author: "Theresa Walter"
+date: "14 1 2022"
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-# Packages ----------------------------------------------------------------
+## Packages
+
+```{r packages}
 library(tidyverse)
 library(lubridate)
 library(dplyr)
+```
 
-# Import Data -------------------------------------------------------------
+## Data Import
+
+```{r dataimport, echo=FALSE}
 dwd_airport <- read.csv('https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/meteo_stations/dwd_airport.csv')
 dwd_airport$dttm <- ymd_hms(dwd_airport$dttm)
 
@@ -27,20 +35,25 @@ wbi$dttm <- ymd_hms(wbi$dttm)
 my_hobo <- read.csv('https://raw.githubusercontent.com/AserehtRetlaw/Timeseries_in_R-1/main/1_data_processed/meteo_stations/my_hobo.csv')
 my_hobo$dttm <- ymd_hms(my_hobo$dttm)
 names(my_hobo)[names(my_hobo)=="temp"] <- "my_hobo"
+```
 
-# Combine time and temperature values -------------------------------------
+## Combine time and temperature values
+
+```{r }
 refs <- full_join(my_hobo, dwd_airport, by = "dttm")
 refs <- full_join(refs, dwd_urban, by = "dttm")
 refs <- full_join(refs, uni_meteo, by = "dttm")
 refs <- full_join(refs, wbi, by = "dttm")
+```
 
-# Convert o long format ---------------------------------------------------
+## Compare by Graph
+
+```{r compareByGraph}
 refs_long <- refs %>%
 	pivot_longer(cols = -c(dttm), # use all, but not 'dttm'
 		     names_to = "station",
 		     values_to = "temp")
 
-# Erste Darstellung -------------------------------------------------------
 ggplot(data = refs_long, aes(x = dttm, y = temp)) +
 	geom_line(aes(colour = station)) +
 	theme_minimal() +
@@ -48,9 +61,23 @@ ggplot(data = refs_long, aes(x = dttm, y = temp)) +
 	labs(title = "Example plot: Comparison across stations",
 	     subtitle = "13.12.2021 - 09.01.2022",
 	     x = "Date", y = "Temperature (°C)")
+```
 
-# Regressionen -------------------------------------------------------------
-lm(refs$my_hobo ~ refs$dwd_airport)
+## Regressions
+```{r regressions}
+hobo_airport <- lm(refs$my_hobo ~ refs$dwd_airport)
 
+hobo_urban <- lm(refs$my_hobo ~ refs$dwd_urban)
 
+hobo_uni <- lm(refs$my_hobo ~ refs$uni_meteo)
 
+hobo_wbi <- lm(refs$my_hobo ~ refs$wbi)
+
+# Overview
+
+overview_reg <- data.frame(dwd_airport = hobo_airport[[1]][1:2],
+			   dwd_urban = hobo_urban[[1]][1:2],
+			   uni = hobo_uni[[1]][1:2],
+			   wbi = hobo_wbi[[1]][1:2])
+overview_reg
+```

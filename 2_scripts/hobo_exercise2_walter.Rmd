@@ -186,7 +186,8 @@ qc_df <- data.frame(id = data$id, dttm = data$dttm, temp = data$temp, lux = data
 qc_df <- qc_df %>%
 mutate(qc_tot = qcp1 + qcp2 + qcp3) %>%
 mutate(flag_num = if_else(qc_tot > 0, 1, 0)) %>%
-mutate(flag_txt = if_else(qc_tot > 1, "bad", "good"))
+mutate(flag_txt = if_else(qc_tot > 1, "bad", "good")) %>% 
+	as.tibble()
 
 qc_df
 ```
@@ -204,7 +205,8 @@ hobo_hourly_dummy <- hobo_hourly_dummy %>%
 	summarise_at(vars(temp, flag_num), ~ mean(.,na.rm = TRUE)) %>%
 	mutate(temp_2 = if_else(flag_num < 0.3, temp, NULL)) 
 
-hobo_hourly <- data.frame(dttm = hobo_hourly_dummy$hour, temp = round(hobo_hourly_dummy$temp_2, 4))
+hobo_hourly <- data.frame(dttm = hobo_hourly_dummy$hour, temp = round(hobo_hourly_dummy$temp_2, 4)) %>% 
+	as.tibble()
 
 write.csv(hobo_hourly, 'C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/meteo_stations/my_hobo.csv', row.names = FALSE)
 
