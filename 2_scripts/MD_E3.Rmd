@@ -109,4 +109,7 @@ hourly_th
 
 ```{r export}
 write.csv(hourly_th, "C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/hourly/10760710_Th.csv", row.names = FALSE)
+
+write.csv(overview_reg, "C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/hourly/regressions.csv", row.names = FALSE)
+
 ```

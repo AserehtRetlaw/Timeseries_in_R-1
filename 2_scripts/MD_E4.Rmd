@@ -100,4 +100,23 @@ ind
 ```
 
 
+## Maximum of Light
 
+```{r maxLight}
+
+```
+
+
+## Fraction of NA
+
+```{r naFraction}
+hobo_hour <- hobo_hour %>% 
+	mutate(na = if_else(origin == "R", 1, 0))
+
+ind$f_na <- round(sum(hobo_hour$na)/length(hobo_hour$na),3)
+ind
+```
+
+## Reference ID
+
+## Reference R²
