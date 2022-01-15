@@ -29,25 +29,25 @@ library(zoo)
 ## 1. Quality control procedures (4 QCPs)
 Data set from HOBO 1076071 from 2021-12-13 00:00:00 until 2021-01-09 23:50:00
 
-```{r echo=FALSE}
-data <- read_csv('https://raw.githubusercontent.com/data-hydenv/data/master/hobo/2022/10_minute/10760710.csv', show_col_types = FALSE)
+```{r echo=TRUE}
+data <- read_csv('https://raw.githubusercontent.com/data-hydenv/data/master/hobo/2022/10_minute/10760710.csv',
+		 show_col_types = FALSE)
 
 data
 ```
 
 ### 1.1 Measurement range (Plausible values)
-The measurement range of HOBO is for temperature from -20°C to 70°C in air and for light intensity from 0 to 320000 lux.
+The measurement range of HOBO is for temperature from -20°C to 70°C in air.
 ```{r qcp1, echo=TRUE}
-
 data <- data %>% 
 	mutate(qcp1 = case_when(temp < -20 ~ 1, # flagging values < -20°C
 		  temp > 70 ~ 1, # flagging values > 70°C
-		  # lux < 0 ~ 1,
-		  # lux > 320000 ~ 1,
 		  TRUE ~ 0))
+
 data
 ```
 
+Counting values with and without a flag for quality check 1:
 ```{r wrong values, echo=TRUE}
 data %>% group_by(qcp1) %>% # groub by flag and no flag
 	summarise(n = n()) %>%  # count values with and without flag
@@ -56,13 +56,20 @@ data %>% group_by(qcp1) %>% # groub by flag and no flag
 
 **Question**: How many data points are outside the measurement range?
 
-**Answer**: There are 0 unplausible values.
+**Answer**: There are 4032 values inside the measurement range and 0 unplausible values.
 
 ### 1.2 Plausible rate of change
 
 Is there a difference of more than 1 K between two consecutive temperature values?
 ```{r qcp2, eval = TRUE}
-data <- data %>% mutate(qcp2 = if_else(abs(temp - lag(temp)) > 1 , 1, 0)) # Difference of temperature value and the previous temperature value
+data <- data %>% mutate(qcp2 = if_else(abs(temp - lag(temp)) > 1 , # Difference of temperature value and the previous temperature value
+				       1, 0)) #flagging values with big difference to their previous value
+
+data
+```
+
+Counting values with and without a flag for quality check 2:
+```{r bigSteps}
 
 data %>% group_by(qcp2) %>% # groub by flag and no flag
 	summarise(n = n()) %>%  # count values with and without flag
@@ -77,12 +84,12 @@ data %>% filter(qcp2 == 1)
 
 **Question**: Describe shortly how many data points failed during this QCP and discuss whether there is a certain daytime pattern of failure or not?
 
-**Answer**: As the shortened four-week-dataset is used for the analysis, a comparison of the first temperature value with its previous value was not possible. Within the remaining dataset 7 values have been found, which had a difference to their previous value fo more than 1 K. Those values are distributed over the second and third week of the measurement and between 6 AM and 6 PM. Influences from the use of the balcony, where the HOBO was located, are possibly recognisable here.
+**Answer**: As the shortened four-week-dataset is used for the analysis, a comparison of the first temperature value with its previous value was not possible (NA). Within the remaining dataset 7 values have been found, which had a difference to their previous value fo more than 1 K. Those values are distributed over the second and third week of the measurement and between 6 AM and 6 PM. Influences from the use of the balcony, where the HOBO was located, are possibly recognisable here.
 
 ### 1.3 Minimum variability (Persistence)
 
-
-```{r qcp3, eval=TRUE}
+Didn't the temperature value chanche during one hour?
+```{r qcp3, echo=TRUE}
 data <- data %>% mutate(qcp3 = if_else(temp == lag(temp, n = 1) &
 				       	temp == lag(temp, n = 2) &
 				       	temp == lag(temp, n = 3) &
@@ -90,8 +97,10 @@ data <- data %>% mutate(qcp3 = if_else(temp == lag(temp, n = 1) &
 				       	temp == lag(temp, n = 5),
 				       1, 0))
 
-head(data)
+data
 ```
+
+Counting values with and without a flag for quality check 3:
 ```{r invalide Values, echo=TRUE}
 data %>% 
 	group_by(qcp3) %>% # groub by flag and no flag
@@ -99,6 +108,7 @@ data %>%
 	ungroup()
 ```
 
+There are 76 flagged values for quality check 3. Do they show a special pattern during a day?
 ```{r invalide_values_distribution, echo=TRUE}
 data_unpersistant <- data %>% filter(qcp3 == 1) %>% 
 	mutate(hour = format(dttm, format="%H"))
@@ -114,16 +124,19 @@ ggplot(dis_hour, aes(hour, n))+
 **Task**: Code in this section should analyses the persistance.
 If temperature has not changed during the last 60 minutes (i.e. data point Ti plus 5 data points before from Ti−1 to Ti−5) the corresponding data point Ti failed in this QCP.
 
+**Answer**: The dataset contains 76 values, which have the same tamperature value as their 5 previous values and therefore failed the quality check 3. Those values show no specific pattern over one day.
+
 ### 1.4 Light intensity
 
+Are temperature values influenced by intense sunlight?
 ```{r qcp4}
 data <- data %>% 
 	mutate(sic = case_when(lux < 20000 ~ "cat1",
 				       between(lux, 20000, 50000) ~ "cat2",
 				       lux > 50000 ~ "cat3",
-				       TRUE ~ "other")) %>%  # classify by Sky Illuminance Classes
+				       TRUE ~ "other")) %>%  # classify by Sky Illuminance Classes (cat 3 = intense sunlight, cat 2 = sunlight, cat 1 = no influence)
 	mutate(qcp4 = case_when(
-				(hour(dttm) < 6 & hour(dttm) >= 18) ~ 0, #set all qcp4 values for nighttime to 1
+				(hour(dttm) < 6 & hour(dttm) >= 18) ~ 0, #set all qcp4 values for nighttime to 0
                            lag(sic, n = 3) == "cat3" ~ 1, #set 1 if cat3 +- 3 before or ahead
                            lag(sic, n = 2) == "cat3" ~ 1,
                            lag(sic) == "cat3" ~ 1,
@@ -132,7 +145,7 @@ data <- data %>%
                            lead(sic, n = 2) == "cat3" ~ 1,
                            lead(sic, n = 3) == "cat3" ~ 1,
                            
-                           lag(sic) == "cat2" ~ 1, #set 0 if sunshine +- 1 before or ahead
+                           lag(sic) == "cat2" ~ 1, #set 0 if cat 2 +- 1 before or ahead
                            sic == "cat2" ~ 1,
                            lead(sic) == "cat2" ~ 1,
                            
@@ -140,6 +153,7 @@ data <- data %>%
 
 data
 ```
+Counting values with and without a flag for quality check 4:
 ```{r invalide Values2, echo=TRUE}
 data %>% 
 	group_by(sic) %>% # groub by categories
@@ -162,7 +176,9 @@ synth <- data.frame(qcp = c("qcp1", "qcp2", "qcp3", "qcp4"),
 ggplot(synth, aes(qcp, flags))+
 	geom_col()
 ```
-
+```{r synthTable, echo=FALSE}
+synth
+```
 **Task**: Present a table or graph to show how many data points fail during the four specific QCPs. Discuss shortly the reasons for failure and compare the different QCPs against each other.
 
 **Answer**: As shown in the graph above, the most fails were detected during quality check 3. There were found 76 temperature values, which were same as their 5 previous values. In quality check 2 only 7 temperature values were detected, which differ more than 1 K from their previous value.
@@ -170,24 +186,20 @@ No bad values were found in quality check 1 and 4.
 Fails in quality check 2 (strong change in temperature) might happended because of human influence by using the balkony.
 Fails in quality ckeck 3 are eventually caused by the slow reaction of temperature caused by the location of the HOBO at a inverted balcony where hardly any influence from wind etc. happens.
 
-
-
-```{r synthesis_table, echo=FALSE}
-synth
-```
-
 ## 3. Results
 
 ### 3.1 Result (Flagging system: 10-minutes-values)
 
-```{r res1}
-qc_df <- data.frame(id = data$id, dttm = data$dttm, temp = data$temp, lux = data$lux, qcp1 = data$qcp1, qcp2 = data$qcp2, qcp3 = data$qcp3, qcp4 = data$qcp4)
+```{r res1, message=FALSE, warning=FALSE}
+# combine all important data with information about measurement and results from quality check
+qc_df <- data.frame(id = data$id, dttm = data$dttm, temp = data$temp, lux = data$lux, qcp1 = data$qcp1, qcp2 = data$qcp2, qcp3 = data$qcp3, qcp4 = data$qcp4) 
 
+# summarize the qualiy cck resutls to one final flagging (flag_num)
 qc_df <- qc_df %>%
 mutate(qc_tot = qcp1 + qcp2 + qcp3) %>%
 mutate(flag_num = if_else(qc_tot > 0, 1, 0)) %>%
 mutate(flag_txt = if_else(qc_tot > 1, "bad", "good")) %>% 
-	as.tibble()
+	as_tibble()
 
 qc_df
 ```
@@ -196,17 +208,16 @@ qc_df
 
 ### 3.2 Result (Aggregate to hourly series)
 
-```{r res2}
+```{r res2, echo=TRUE, message=FALSE, warning=FALSE}
 hobo_hourly_dummy <- qc_df %>%
-	mutate(hour = format(dttm, format="%Y-%m-%d %H")) #%>% 
-hobo_hourly_dummy <- hobo_hourly_dummy %>%
+	mutate(hour = format(dttm, format="%Y-%m-%d %H")) %>% 
 	mutate(hour = cut(dttm, breaks = "hour")) %>%
 	group_by(hour) %>%
 	summarise_at(vars(temp, flag_num), ~ mean(.,na.rm = TRUE)) %>%
 	mutate(temp_2 = if_else(flag_num < 0.3, temp, NULL)) 
 
 hobo_hourly <- data.frame(dttm = hobo_hourly_dummy$hour, temp = round(hobo_hourly_dummy$temp_2, 4)) %>% 
-	as.tibble()
+	as_tibble()
 
 write.csv(hobo_hourly, 'C:/Users/Theresa/0-Studium/ALU/Semester 1/Modul 4 Data Collection Storage Management/Timeseries_in_R/Timeseries_in_R-1/1_data_processed/meteo_stations/my_hobo.csv', row.names = FALSE)
 
