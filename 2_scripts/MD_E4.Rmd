@@ -41,7 +41,7 @@ hobo_hour
 ## Create Result-Table
 
 ```{r resulttable}
-ind <- data.frame(t_avg = NA, t_d = NA, t_n = NA, t_amp = NA, t_d6h = NA, l_avg = NA, l_max = NA, f_na = NA, ref_id = 13667, ref_r2 = NA)
+ind <- data.frame(t_avg = NA, t_d = NA, t_n = NA, t_amp = NA, t_d6h = NA, l_avg = NA, l_max = NA, f_na = NA, ref_id = NA, ref_r2 = NA)
 ind
 ```
 
@@ -100,7 +100,7 @@ ind
 ```{r averageLight}
 hobo_ten <- hobo_ten %>%
 	mutate(hour = hour(dttm)) %>% 
-	mutate(daynight = if_else(hour > 6 & hour < 18, "D", "N")) %>% 
+	mutate(daynight = if_else(hour > 5 & hour < 18, "D", "N")) %>% 
 	mutate(time = paste(hour(dttm),":",minute(dttm)))
 c <- hobo_ten %>% 
 	group_by(daynight) %>% 
@@ -134,10 +134,20 @@ ind
 ```
 
 ## Reference ID
-Reference ID DWD urban: 13667
+(Reference ID DWD urban: 13667)
+wbi wurde verwendet
+```{r refID}
+ind$ref_id = "wbi"
+ind
+```
 
 ## Reference R²
 ```{r refR2}
-ind$ref_r2 <- round(regressions[2,2],3)
+ind$ref_r2 <- round(regressions[3,4],3)
 ind
+```
+
+```{r histogramLux}
+ten_day <- hobo_ten %>%
+	filter(daynight == "D")
 ```
